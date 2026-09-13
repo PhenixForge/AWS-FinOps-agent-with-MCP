@@ -26,15 +26,15 @@ resource "aws_iam_role" "finops_agent_readonly" {
 
 resource "aws_iam_role_policy" "finops_agent_readonly" {
   name = "finops-readonly"
-  role  = aws_iam_role.finops_agent_readonly.id
+  role = aws_iam_role.finops_agent_readonly.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "CostExplorerReadOnly"
-        Effect   = "Allow"
-        Action   = [
+        Sid    = "CostExplorerReadOnly"
+        Effect = "Allow"
+        Action = [
           "ce:GetCostAndUsage",
           "ce:GetCostForecast",
           "ce:GetDimensionValues",
@@ -43,9 +43,9 @@ resource "aws_iam_role_policy" "finops_agent_readonly" {
         Resource = "*"
       },
       {
-        Sid      = "CloudWatchReadOnly"
-        Effect   = "Allow"
-        Action   = [
+        Sid    = "CloudWatchReadOnly"
+        Effect = "Allow"
+        Action = [
           "cloudwatch:GetMetricData",
           "cloudwatch:GetMetricStatistics",
           "cloudwatch:ListMetrics",
@@ -53,9 +53,9 @@ resource "aws_iam_role_policy" "finops_agent_readonly" {
         Resource = "*"
       },
       {
-        Sid      = "EC2DescribeOnly"
-        Effect   = "Allow"
-        Action   = [
+        Sid    = "EC2DescribeOnly"
+        Effect = "Allow"
+        Action = [
           "ec2:DescribeInstances",
           "ec2:DescribeInstanceTypes",
         ]
