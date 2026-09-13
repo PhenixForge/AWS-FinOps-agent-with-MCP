@@ -18,6 +18,7 @@ Sur Fedora Gnome 44, on utilise le package manager `dnf` :
 sudo dnf install -y dnf5-plugins
 sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
 sudo dnf install -y terraform
+terraform -version
 ```
 
 ## Contexte et raison d'être
