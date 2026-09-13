@@ -1,5 +1,12 @@
 # AWS FinOps Agent with MCP
 
+[![Terraform](https://img.shields.io/badge/Terraform-v1.6%2B-7B42BC?logo=terraform)](https://www.terraform.io/)
+[![AWS Provider](https://img.shields.io/badge/AWS_Provider-v6.0%2B-FF9900?logo=amazonaws)](https://registry.terraform.io/providers/hashicorp/aws/latest)
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/MCP-Model_Context_Protocol-000000.svg)](https://modelcontextprotocol.io/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Julien-blue?logo=linkedin)](https://www.linkedin.com/in/julien-p-68834731/?locale=fr)
+
 Agent conversationnel qui répond en langage naturel à des questions sur les coûts et l'utilisation de sa propre infrastructure AWS, exposé comme serveur MCP et hébergé sur Amazon Bedrock AgentCore.
 
 ## Fonctionnalités

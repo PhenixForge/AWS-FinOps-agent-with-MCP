@@ -78,3 +78,14 @@ Abandonnée en creusant un point non évident : **AWS Cost Explorer ne supporte 
 En construisant `04-MCP.tf`, constat : les clients de démo prévus (Claude Code CLI, connecteur MCP claude.ai) embarquent déjà leur propre boucle agent. Le Runtime AgentCore (`02-BEDROCK-runtime.tf` + ECR), qui héberge sa propre boucle agent + appel modèle Bedrock, ne reçoit donc jamais d'appel dans ce scénario — rien ne l'invoque.
 
 **Décision** : la démo repose uniquement sur Gateway + une Lambda (`finops-tools`) exposant les 3 outils en MCP — plus simple, gratuit/quasi-gratuit, et sans Dockerfile ni code de boucle agent à écrire. Le Runtime et l'ECR sont conservés dans le repo comme chantier exploratoire séparé, pour tester plus tard le pattern "agent conteneurisé autonome" invocable indépendamment de tout client MCP (cas d'usage : un appelant sans LLM propre, ex. un bot Slack ou un job planifié) — non nécessaire pour ce projet, gardé par intérêt technique.
+
+## À faire / à vérifier une fois un compte AWS disponible (13 septembre 2026)
+
+Rien de tout ça n'est bloquant pour continuer à coder, mais tout nécessite soit un vrai déploiement, soit un accès compte pour être réglé ou confirmé. Liste pour ne rien perdre :
+
+- **Domaine Cognito manquant** (`aws_cognito_user_pool_domain`) — sans lui, l'endpoint OAuth `/oauth2/token` n'existe pas, donc le flow `client_credentials` ne peut délivrer aucun token. Pur code Terraform, pas besoin d'un compte pour l'écrire, mais impossible à tester sans déployer.
+- **Aucun `output` Terraform** pour récupérer après coup l'URL du Gateway, le `client_id`/`client_secret` Cognito et le domaine — nécessaires pour configurer un vrai client MCP (Claude Code CLI, claude.ai). Idem : à écrire, mais à valider seulement après un `apply`.
+- **Forme exacte de l'event Lambda envoyé par le Gateway** (target MCP `lambda`) — `handler.py` tente plusieurs formes plausibles, à confirmer/adapter après une première invocation réelle (logguer `event` tel quel).
+- **Principal/`source_arn` de `aws_lambda_permission`** (`04-MCP.tf`) — supposé `bedrock-agentcore.amazonaws.com` + ARN du Gateway, non vérifié contre la doc AWS.
+- **Namespace/nom de métrique CloudWatch pour le GPU** (`handler.py`, `gpu_utilization_rate`) — suppose un agent CloudWatch/NVIDIA DCGM publiant sous `CWAgent`/`nvidia_smi_utilization_gpu` ; dépend de ce qui est réellement installé sur les instances GPU, à ajuster une fois qu'elles existent.
+- **Service principal AgentCore** (`00-IAM.tf`) déjà confirmé contre la doc — pas un TODO, juste listé ici pour mémoire que c'est réglé.
