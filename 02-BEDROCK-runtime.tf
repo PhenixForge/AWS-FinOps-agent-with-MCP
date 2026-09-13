@@ -38,17 +38,24 @@ resource "aws_bedrockagentcore_agent_runtime" "finops_agent_runtime" {
   }
 
   network_configuration {
-    network_mode = "PRIVATE"
-    # TODO: PRIVATE mode likely requires a vpc_config block (subnet_ids,
-    # security_group_ids) — no VPC/subnet resources exist yet in this repo.
-    # Verify the exact schema with `terraform providers schema` against the
-    # hashicorp/aws v6.64.0 docs before applying, and add the VPC resources
-    # (probably a new 00-VPC.tf) if the provider requires them for this mode.
+    network_mode = "VPC"
+
+    network_mode_config {
+      subnets         = aws_subnet.private[*].id
+      security_groups = [aws_security_group.finops_agent_runtime.id]
+    }
   }
+  # CAUTION: the private/isolated route tables in main.tf only have gateway
+  # endpoints for S3 and DynamoDB — no NAT/IGW route and no interface
+  # endpoints for ECR, STS, CloudWatch, or Bedrock. As configured, the runtime
+  # likely can't pull its own image from ECR nor call any AWS API.
+  # AWS Cost Explorer (ce:*) has no VPC PrivateLink support at all — it's only
+  # reachable over the public internet, so this agent needs a NAT gateway (or
+  # a public network mode) regardless of which interface endpoints get added.
 }
 
 resource "aws_bedrockagentcore_agent_runtime_endpoint" "finops_agent_endpoint" {
-  name             = "finops-agent-endpoint"
+  name             = "finops_agent_endpoint"
   agent_runtime_id = aws_bedrockagentcore_agent_runtime.finops_agent_runtime.agent_runtime_id
   description      = "Endpoint for agent runtime communication"
 }
