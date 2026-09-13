@@ -1,54 +1,26 @@
-# Mini-projet weekend : agent FinOps AWS + MCP
-Agent FinOps AWS en langage naturel, exposé via MCP, hébergé sur Bedrock AgentCore.
+# AWS FinOps Agent with MCP
 
----
-name: finops-mcp-agent-weekend
-description: >
-  Mini-projet portfolio "quick win" — agent FinOps AWS en langage naturel, exposé via MCP,
-  hébergé sur Bedrock AgentCore. Décidé et cadré en septembre 2026, distinct du projet
-  flagship vllm-serving-kubernetes-platform. À consulter pour tout ce qui concerne ce
-  projet weekend, son scope, ses décisions et son critère d'arrêt.
----
+Agent conversationnel qui répond en langage naturel à des questions sur les coûts et l'utilisation de sa propre infrastructure AWS, exposé comme serveur MCP et hébergé sur Amazon Bedrock AgentCore.
 
-## Contexte et raison d'être
+## Fonctionnalités
 
-Expérimentation pratique sur l'agentique. Volontairement un **repo séparé** du projet flagship `vllm-serving-kubernetes-platform` (voir `vllm-serving-kub-pf.md`) — ne doit ni le retarder ni se confondre avec lui.
+- « Combien m'ont coûté mes instances GPU les 7 derniers jours ? » (AWS Cost Explorer)
+- « Quelles instances tournent avec un GPU sous-utilisé ? » (CloudWatch)
+- « Quel est mon coût par million de tokens servis ? »
 
-**Objectif** : produire, en une session de travail en copilotage avec un LLM de codage, un agent conversationnel qui répond à des questions réelles sur les coûts et l'utilisation de sa propre infrastructure AWS — pas un énième tutoriel d'agent générique.
+## Architecture
 
-## Scope retenu
+- **Hébergement** : Amazon Bedrock AgentCore (Runtime + Gateway)
+- **Données** : AWS Cost Explorer API et CloudWatch, via un rôle IAM strictement en lecture seule
+- **Déploiement** : Terraform (`00-IAM.tf`, `01-BEDROCK.tf`, `02-MCP.tf`)
+- **Protocole** : les outils sont exposés comme un serveur MCP plutôt qu'un schéma d'outils propriétaire Bedrock
 
-- **Fonction** : répondre en langage naturel à des questions comme « combien m'ont coûté mes instances GPU les 7 derniers jours ? », « quelles instances tournent avec un GPU sous-utilisé ? », « quel est mon coût par million de tokens servis ? »
-- **Hébergement** : Amazon Bedrock AgentCore (Runtime + Gateway) — supporte nativement MCP depuis 2026 (spec MCP 2026-07-28 côté Gateway, MCP à état côté Runtime depuis mars 2026)
-- **Données** : AWS Cost Explorer API (coût par service/période) et CloudWatch (utilisation GPU des instances)
-- **Déploiement** : Terraform, rôle IAM strictement en lecture seule sur facturation et métriques
-- **Protocole** : les fonctions outils sont exposées comme un **serveur MCP** plutôt qu'un schéma d'outils propriétaire Bedrock — incarne la thèse de la commoditisation des appels modèles (la valeur se déplace vers la couche protocole/intégration, pas le modèle lui-même)
+*(schéma d'architecture à ajouter)*
 
-## Explicitement hors scope (et pourquoi)
+## Démo
 
-- **GCP** : cloud-agnostique écarté — doubler les clouds double la friction d'auth/IAM que le copilotage ne compresse pas, et va à l'encontre de la consigne de ne pas investir de temps personnel sur GCP (à apprendre en heures de bureau chez Valeo uniquement)
-- **RAG et évaluation** : reportés sur le projet vLLM flagship, où ils s'intègrent plus naturellement (un modèle déjà servi, une stack Prometheus déjà en place) et où le calendrier n'est pas contraint par un objectif "fini ce weekend"
+*(captures d'écran / asciinema à ajouter — démo via Claude Code CLI et/ou un connecteur MCP distant sur claude.ai)*
 
-## Découpage de la session (repères, pas un budget rigide)
+## Contexte du projet
 
-1. Préparation compte : accès modèle Bedrock, activation Cost Explorer, rôle IAM lecture seule
-2. Écriture des 3 fonctions outils (coût par service/période, instances GPU actives, taux d'utilisation) + boucle agent
-3. Emballage en serveur MCP (léger avec copilotage — les fonctions existent déjà, il s'agit de les exposer au format MCP)
-4. Déploiement Terraform sur AgentCore
-5. README avec schéma d'architecture, captures d'écran, transcription réelle question/réponse
-6. Post LinkedIn en anglais
-
-## Critère d'arrêt
-
-Si l'agent ne répond pas de bout en bout à une vraie question le premier soir : publier le repo avec ce qui fonctionne et un README honnête sur ce qui bloque, ou abandonner proprement. Pas de glissement..
-
-## Façade de démo — tranché (12 septembre 2026)
-
-Claude Desktop est écarté comme client de démo : la bêta Linux (juillet 2026) ne supporte officiellement que les distributions Debian/Ubuntu — Fedora et RHEL en sont explicitement exclus (confirmé sur la documentation officielle, à revérifier si Julien change de distribution). La démo passera par :
-
-- **Claude Code CLI** en priorité — tourne nativement sur Fedora Workstation GNOME sans les contraintes de la bêta Desktop, s'intègre au workflow de copilotage déjà utilisé sur ce projet, démo terminal enregistrée (capture d'écran ou asciinema) montrant une vraie question/réponse sur la facturation AWS. Ce format terminal est aussi cohérent, voire plus crédible, pour une audience infra que pour un public grand public.
-- **Un connecteur MCP distant ajouté sur claude.ai** en option complémentaire si un rendu plus conversationnel (bulle de chat plutôt que terminal) est voulu pour le post LinkedIn — accessible depuis n'importe quel navigateur, sans dépendance à Desktop.
-
-## Budget
-
-Quelques euros au maximum avec un modèle économique — l'agent lit des données de facturation existantes, aucun GPU nécessaire pour le projet lui-même.
+Scope, décisions et critère d'arrêt : voir [finops-mcp-agent-weekend.md](finops-mcp-agent-weekend.md).
