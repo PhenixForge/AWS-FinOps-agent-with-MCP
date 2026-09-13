@@ -8,6 +8,18 @@ Agent conversationnel qui répond en langage naturel à des questions sur les co
 - « Quelles instances tournent avec un GPU sous-utilisé ? » (CloudWatch)
 - « Quel est mon coût par million de tokens servis ? »
 
+## Pourquoi c'est agentique, et pourquoi MCP
+
+Ce n'est pas un LLM qui répond depuis ses connaissances générales sur AWS — c'est un système où l'agent décide lui-même quels outils appeler, dans quel ordre et avec quels paramètres, pour répondre à une question qu'il n'a jamais vue formulée exactement comme ça. Le split entre outils (3 fonctions étroites et déterministes : coût, instances GPU, utilisation) et agent (la boucle qui orchestre) est le cœur de la démarche : pas un pipeline figé, un plan généré à la volée.
+
+L'exemple qui me plaît le plus pour illustrer ça :
+
+> « Quelles instances tournent avec un GPU sous-utilisé ? » n'existe comme fonction nulle part dans `handler.py`. L'agent doit décomposer tout seul : lister les instances GPU actives, interroger le taux d'utilisation de chacune, corréler les deux résultats, et appliquer un seuil pour juger "sous-utilisé". Personne n'a écrit cette logique de composition — elle émerge du raisonnement de l'agent sur les 3 outils disponibles.
+
+Ça infuse aussi l'architecture : le rôle IAM lecture seule, l'authz sur le Gateway, tout ça existe parce qu'on donne un accès réel — bien que restreint — à de l'infra de prod à un système autonome, pas à un chatbot qui répondrait depuis un dashboard pré-calculé.
+
+Côté protocole, j'ai délibérément choisi MCP plutôt que le schéma d'action groups propriétaire de Bedrock, alors que ce dernier aurait été tout aussi capable techniquement. La raison est stratégique plus que technique : MCP découple les outils du client qui les consomme. Les mêmes 3 tools servent à Claude Code CLI et à claude.ai sans écrire deux intégrations différentes — avec un schéma Bedrock, ce choix n'existerait pas, ce serait Bedrock ou rien. Et si demain le modèle change, un `aws_bedrockagentcore_gateway_target` en MCP reste utilisable, alors qu'un schéma d'action group est jetable dès qu'on change d'écosystème agent. C'est le pari de la commoditisation évoqué dans [finops-mcp-agent.md](finops-mcp-agent.md) : si n'importe quel modèle sait de mieux en mieux faire du tool-use, la valeur se déplace du modèle vers la couche d'intégration — et c'est cette couche-là que ce projet met en avant.
+
 ## Architecture
 
 - **Hébergement** : Amazon Bedrock AgentCore Gateway (MCP), authentification OAuth via Cognito (`CUSTOM_JWT`)
