@@ -1,5 +1,30 @@
 resource "aws_ecr_repository" "finops_ecr_repository" {
   name = "finops-ecr-repository"
+
+  # Lab repo, destroyed/recreated often — allow `terraform destroy` even
+  # with images still in it, instead of having to delete them by hand first.
+  force_delete = true
+}
+
+resource "aws_ecr_lifecycle_policy" "finops_ecr_repository_policy" {
+  repository = aws_ecr_repository.finops_ecr_repository.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep only the 5 most recent images (lab repo, rebuilt often)"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 5
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
 }
 
 # Lab-only policy: grants this account push/pull AND delete/admin actions on the

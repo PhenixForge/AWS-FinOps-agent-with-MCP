@@ -11,7 +11,7 @@ resource "aws_iam_role" "finops_agent_readonly" {
       {
         Effect = "Allow"
         Principal = {
-          # TODO: confirm the exact AgentCore Runtime service principal against AWS docs
+          # Confirmed: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html
           Service = "bedrock-agentcore.amazonaws.com"
         }
         Action = "sts:AssumeRole"
