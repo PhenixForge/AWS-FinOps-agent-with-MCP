@@ -1,6 +1,10 @@
-# Read-only IAM role for the FinOps MCP tools, assumed by Bedrock AgentCore Runtime.
-# Scope: Cost Explorer + CloudWatch, plus EC2 describe to identify GPU instances.
-# No write/mutating action is granted on any AWS API.
+# Shared execution role for the Bedrock AgentCore Runtime and Gateway
+# (both assume it as "bedrock-agentcore.amazonaws.com"). It does NOT hold the
+# Cost Explorer/CloudWatch/EC2 read scope — those calls happen in the
+# finops-tools Lambda (04-MCP.tf), which has its own dedicated role. This role
+# only gets what the Runtime/Gateway themselves need: pulling the Runtime's
+# container image from ECR (02-BEDROCK-runtime.tf) and invoking the Lambda
+# target (04-MCP.tf).
 
 resource "aws_iam_role" "finops_agent_readonly" {
   name = "finops-agent-readonly"
@@ -22,45 +26,4 @@ resource "aws_iam_role" "finops_agent_readonly" {
   tags = {
     project = "finops-mcp-agent"
   }
-}
-
-resource "aws_iam_role_policy" "finops_agent_readonly" {
-  name = "finops-readonly"
-  role = aws_iam_role.finops_agent_readonly.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "CostExplorerReadOnly"
-        Effect = "Allow"
-        Action = [
-          "ce:GetCostAndUsage",
-          "ce:GetCostForecast",
-          "ce:GetDimensionValues",
-          "ce:GetTags",
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "CloudWatchReadOnly"
-        Effect = "Allow"
-        Action = [
-          "cloudwatch:GetMetricData",
-          "cloudwatch:GetMetricStatistics",
-          "cloudwatch:ListMetrics",
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "EC2DescribeOnly"
-        Effect = "Allow"
-        Action = [
-          "ec2:DescribeInstances",
-          "ec2:DescribeInstanceTypes",
-        ]
-        Resource = "*"
-      },
-    ]
-  })
 }
