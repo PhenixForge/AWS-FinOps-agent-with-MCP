@@ -1,13 +1,13 @@
-# Mini-projet weekend : agent FinOps AWS + MCP
+# Mini-projet quick win : agent FinOps AWS + MCP
 Agent FinOps AWS en langage naturel, exposé via MCP, hébergé sur Bedrock AgentCore.
 
 ---
-name: finops-mcp-agent-weekend
+name: finops-mcp-agent
 description: >
   Mini-projet portfolio "quick win" — agent FinOps AWS en langage naturel, exposé via MCP,
   hébergé sur Bedrock AgentCore. Décidé et cadré en septembre 2026, distinct du projet
   flagship vllm-serving-kubernetes-platform. À consulter pour tout ce qui concerne ce
-  projet weekend, son scope, ses décisions et son critère d'arrêt.
+  projet, son scope, ses décisions et son critère d'arrêt.
 ---
 
 ## Contexte et raison d'être
@@ -27,7 +27,7 @@ Expérimentation pratique sur l'agentique. Volontairement un **repo séparé** d
 ## Explicitement hors scope (et pourquoi)
 
 - **GCP** : cloud-agnostique écarté — doubler les clouds double la friction d'auth/IAM que le copilotage ne compresse pas, et va à l'encontre de la consigne de ne pas investir de temps personnel sur GCP (à apprendre en heures de bureau chez Valeo uniquement)
-- **RAG et évaluation** : reportés sur le projet vLLM flagship, où ils s'intègrent plus naturellement (un modèle déjà servi, une stack Prometheus déjà en place) et où le calendrier n'est pas contraint par un objectif "fini ce weekend"
+- **RAG et évaluation** : reportés sur le projet vLLM flagship, où ils s'intègrent plus naturellement (un modèle déjà servi, une stack Prometheus déjà en place) et où le calendrier n'est pas contraint par un objectif de livraison rapide
 
 ## Découpage de la session (repères, pas un budget rigide)
 

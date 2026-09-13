@@ -99,4 +99,4 @@ flowchart TD
 
 ## Contexte du projet
 
-Scope, décisions et critère d'arrêt : voir [finops-mcp-agent-weekend.md](finops-mcp-agent-weekend.md).
+Scope, décisions et critère d'arrêt : voir [finops-mcp-agent.md](finops-mcp-agent.md).

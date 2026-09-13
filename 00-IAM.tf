@@ -20,7 +20,7 @@ resource "aws_iam_role" "finops_agent_readonly" {
   })
 
   tags = {
-    project = "finops-mcp-agent-weekend"
+    project = "finops-mcp-agent"
   }
 }
 
