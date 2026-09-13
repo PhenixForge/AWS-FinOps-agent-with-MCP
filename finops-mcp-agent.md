@@ -10,6 +10,16 @@ description: >
   projet, son scope, ses décisions et son critère d'arrêt.
 ---
 
+# Terraform setup on Fedora Gnome
+
+Sur Fedora Gnome 44, on utilise le package manager `dnf` :
+
+```bash
+sudo dnf install -y dnf5-plugins
+sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+sudo dnf install -y terraform
+```
+
 ## Contexte et raison d'être
 
 Expérimentation pratique sur l'agentique. Volontairement un **repo séparé** du projet flagship `vllm-serving-kubernetes-platform` (voir `vllm-serving-kub-pf.md`) — ne doit ni le retarder ni se confondre avec lui.
