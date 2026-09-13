@@ -1,3 +1,6 @@
+# ECR repo for the OPTIONAL standalone AgentCore Runtime (02-BEDROCK-runtime.tf)
+# — not needed for the main Gateway + Lambda MCP demo. Kept as a placeholder
+# to test that more "classic" containerized-agent pattern later.
 resource "aws_ecr_repository" "finops_ecr_repository" {
   name = "finops-ecr-repository"
 

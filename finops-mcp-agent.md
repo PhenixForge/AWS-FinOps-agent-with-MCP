@@ -72,3 +72,9 @@ Abandonnée en creusant un point non évident : **AWS Cost Explorer ne supporte 
 **Décision** : `network_mode = "PUBLIC"` sur le Runtime. La frontière de sécurité réelle (authentification sur le Gateway MCP, rôle IAM strictement lecture seule) ne dépend pas de ce choix — elle est déjà couverte ailleurs. Ressources VPC (`main.tf`) conservées pour les autres subnet groups (DB/ElastiCache), mais le security group dédié au Runtime a été retiré, devenu inutile.
 
 **Leçon générale** : sur AWS, certains services managés (Cost Explorer, mais d'autres existent) n'ont tout simplement pas d'équivalent PrivateLink — le "tout privé" n'est pas toujours atteignable, et vouloir l'imposer partout peut faire payer un coût réseau (NAT) sans gain de sécurité réel. À vérifier service par service avant de figer une contrainte d'architecture.
+
+## Décision : Gateway + Lambda plutôt que Runtime pour la démo (13 septembre 2026)
+
+En construisant `04-MCP.tf`, constat : les clients de démo prévus (Claude Code CLI, connecteur MCP claude.ai) embarquent déjà leur propre boucle agent. Le Runtime AgentCore (`02-BEDROCK-runtime.tf` + ECR), qui héberge sa propre boucle agent + appel modèle Bedrock, ne reçoit donc jamais d'appel dans ce scénario — rien ne l'invoque.
+
+**Décision** : la démo repose uniquement sur Gateway + une Lambda (`finops-tools`) exposant les 3 outils en MCP — plus simple, gratuit/quasi-gratuit, et sans Dockerfile ni code de boucle agent à écrire. Le Runtime et l'ECR sont conservés dans le repo comme chantier exploratoire séparé, pour tester plus tard le pattern "agent conteneurisé autonome" invocable indépendamment de tout client MCP (cas d'usage : un appelant sans LLM propre, ex. un bot Slack ou un job planifié) — non nécessaire pour ce projet, gardé par intérêt technique.

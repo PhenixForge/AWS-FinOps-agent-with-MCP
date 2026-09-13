@@ -1,6 +1,14 @@
-# AWS Bedrock AgentCore configuration
-# Needs a Runtime + Gateway to be deployed in the same VPC as the Bedrock AgentCore. 
-# The Runtime and Gateway can be deployed in a separate module or stack, but they must be in the same VPC.
+# AWS Bedrock AgentCore Runtime — OPTIONAL for this project's actual demo.
+#
+# The demo clients (Claude Code CLI, claude.ai remote MCP connector, see
+# finops-mcp-agent.md) already run their own agent loop; they talk to the
+# Gateway + Lambda MCP server directly (03-BEDROCK-gateway.tf, 04-MCP.tf) and
+# never call this Runtime. It's kept here as a placeholder to test, later and
+# separately, the more "classic" standalone-agent pattern: a container
+# running its own agent loop against a Bedrock model, invocable over HTTP
+# independently of any MCP-aware client (e.g. a non-Claude caller). Needs a
+# Dockerfile + agent code before it does anything — not required to make the
+# main FinOps MCP demo work.
 
 # The runtime execution role is the read-only role from 00-IAM.tf
 # (finops_agent_readonly) — no separate role here, just an extra policy
