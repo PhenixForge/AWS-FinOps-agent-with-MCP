@@ -1,4 +1,4 @@
-# Mini-projet quick win : agent FinOps AWS + MCP
+# Mini-projet : agent FinOps AWS + MCP
 Agent FinOps AWS en langage naturel, exposé via MCP, hébergé sur Bedrock AgentCore.
 
 ---
