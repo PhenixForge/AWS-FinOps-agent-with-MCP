@@ -62,3 +62,13 @@ Claude Desktop est écarté comme client de démo : la bêta Linux (juillet 2026
 ## Budget
 
 Quelques euros au maximum avec un modèle économique — l'agent lit des données de facturation existantes, aucun GPU nécessaire pour le projet lui-même.
+
+## Retour d'expérience : réseau public vs VPC privé (13 septembre 2026)
+
+Piste explorée puis abandonnée : héberger le Runtime AgentCore en mode réseau `VPC` (subnets privés + security group dédié) plutôt qu'en `PUBLIC`, pour coller au schéma sécurité du README.
+
+Abandonnée en creusant un point non évident : **AWS Cost Explorer ne supporte pas du tout VPC PrivateLink** — son API n'est joignable que via l'endpoint public, quel que soit le mode réseau choisi. Un Runtime en subnet privé aurait donc quand même eu besoin d'une sortie internet (NAT Gateway) juste pour appeler Cost Explorer, ce qui n'apporte aucune amélioration de sécurité réelle : le trafic sort en HTTPS public dans les deux cas, seule la route change. Or un NAT Gateway coûte environ 32-35 $/mois — largement au-dessus du budget "quelques euros" du projet, pour re-router un appel qui reste public de toute façon.
+
+**Décision** : `network_mode = "PUBLIC"` sur le Runtime. La frontière de sécurité réelle (authentification sur le Gateway MCP, rôle IAM strictement lecture seule) ne dépend pas de ce choix — elle est déjà couverte ailleurs. Ressources VPC (`main.tf`) conservées pour les autres subnet groups (DB/ElastiCache), mais le security group dédié au Runtime a été retiré, devenu inutile.
+
+**Leçon générale** : sur AWS, certains services managés (Cost Explorer, mais d'autres existent) n'ont tout simplement pas d'équivalent PrivateLink — le "tout privé" n'est pas toujours atteignable, et vouloir l'imposer partout peut faire payer un coût réseau (NAT) sans gain de sécurité réel. À vérifier service par service avant de figer une contrainte d'architecture.

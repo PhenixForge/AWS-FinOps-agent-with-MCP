@@ -119,22 +119,6 @@ resource "aws_vpc_endpoint" "s3" {
   tags = merge(local.common_tags, { Name = "${var.environment}-s3-endpoint" })
 }
 
-resource "aws_security_group" "finops_agent_runtime" {
-  name        = "${var.environment}-finops-agent-runtime"
-  description = "Egress-only SG for the FinOps AgentCore Runtime"
-  vpc_id      = aws_vpc.this.id
-
-  egress {
-    description = "HTTPS to AWS APIs"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(local.common_tags, { Name = "${var.environment}-finops-agent-runtime-sg" })
-}
-
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id            = aws_vpc.this.id
   service_name      = "com.amazonaws.${var.aws_region}.dynamodb"

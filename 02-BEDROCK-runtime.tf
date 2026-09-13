@@ -38,20 +38,13 @@ resource "aws_bedrockagentcore_agent_runtime" "finops_agent_runtime" {
   }
 
   network_configuration {
-    network_mode = "VPC"
-
-    network_mode_config {
-      subnets         = aws_subnet.private[*].id
-      security_groups = [aws_security_group.finops_agent_runtime.id]
-    }
+    network_mode = "PUBLIC"
+    # Deliberately not "VPC": Cost Explorer has no VPC PrivateLink support, so
+    # even from a private subnet this agent would need a NAT gateway just to
+    # reach it — ~$32-35/mo, far above this project's few-euros budget, to
+    # reach an API that's public either way. See finops-mcp-agent.md
+    # ("Retour d'expérience") for the full reasoning.
   }
-  # CAUTION: the private/isolated route tables in main.tf only have gateway
-  # endpoints for S3 and DynamoDB — no NAT/IGW route and no interface
-  # endpoints for ECR, STS, CloudWatch, or Bedrock. As configured, the runtime
-  # likely can't pull its own image from ECR nor call any AWS API.
-  # AWS Cost Explorer (ce:*) has no VPC PrivateLink support at all — it's only
-  # reachable over the public internet, so this agent needs a NAT gateway (or
-  # a public network mode) regardless of which interface endpoints get added.
 }
 
 resource "aws_bedrockagentcore_agent_runtime_endpoint" "finops_agent_endpoint" {

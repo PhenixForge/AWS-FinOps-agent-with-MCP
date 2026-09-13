@@ -12,7 +12,7 @@ Agent conversationnel qui répond en langage naturel à des questions sur les co
 
 - **Hébergement** : Amazon Bedrock AgentCore (Runtime + Gateway)
 - **Données** : AWS Cost Explorer API et CloudWatch, via un rôle IAM strictement en lecture seule
-- **Déploiement** : Terraform (`00-IAM.tf`, `01-BEDROCK.tf`, `02-MCP.tf`)
+- **Déploiement** : Terraform (`00-IAM.tf`, `01-ECR.tf`, `02-BEDROCK-runtime.tf`, `03-BEDROCK-gateway.tf`, `04-MCP.tf`)
 - **Protocole** : les outils sont exposés comme un serveur MCP plutôt qu'un schéma d'outils propriétaire Bedrock
 
 ```mermaid
@@ -27,7 +27,7 @@ flowchart TD
         RT["Runtime (boucle agent, MCP à état)"]
     end
 
-    subgraph MCPServer["Serveur MCP (02-MCP.tf)"]
+    subgraph MCPServer["Serveur MCP (04-MCP.tf)"]
         T1["cost_by_service_period"]
         T2["active_gpu_instances"]
         T3["gpu_utilization_rate"]
@@ -51,33 +51,34 @@ flowchart TD
 
 ## Sécurité
 
-- **Frontière internet / AWS** : seul le Gateway MCP est exposé publiquement, en HTTPS/TLS 1.2+ avec authentification requise ; le Runtime, le serveur MCP et les appels aux API AWS restent internes au compte (pas de sortie internet depuis Cost Explorer / CloudWatch)
-- **Chiffrement** : TLS en transit sur tous les flux (client → Gateway, appels API AWS), chiffrement au repos natif sur Cost Explorer et CloudWatch
-- **Moindre privilège** : rôle IAM dédié, lecture seule (`ce:Get*`, `cloudwatch:Get*`/`List*`), aucune permission d'écriture — défini dans `00-IAM.tf`
+- **Réseau** : Runtime en mode `PUBLIC` (pas de VPC privé) — choix délibéré, pas un oubli : AWS Cost Explorer n'a pas de support VPC PrivateLink, donc même en subnet privé il aurait fallu un NAT Gateway (~35$/mois) pour l'atteindre, sans gain de sécurité réel puisque le trafic reste public dans les deux cas. Détail complet dans [finops-mcp-agent.md](finops-mcp-agent.md#retour-dexpérience--réseau-public-vs-vpc-privé-13-septembre-2026).
+- **Chiffrement** : TLS en transit sur tous les flux (client → Gateway MCP, Gateway/Runtime → API AWS), chiffrement au repos natif sur Cost Explorer et CloudWatch
+- **Authentification** : le Gateway MCP exige une authentification pour tout appel entrant
+- **Moindre privilège** : rôle IAM dédié, lecture seule (`ce:Get*`, `cloudwatch:Get*`/`List*`, `ec2:Describe*`), aucune permission d'écriture — défini dans `00-IAM.tf`
 
 ```mermaid
 flowchart TD
-    subgraph Internet["Internet (non maîtrisé)"]
+    subgraph Internet["Internet"]
         CLI["Claude Code CLI"]
         Chat["claude.ai"]
     end
 
-    subgraph AWSAccount["Compte AWS — VPC privé"]
+    subgraph AWSAccount["Compte AWS"]
         GW["Gateway MCP<br/>TLS 1.2+, authentification requise"]
-        RT["Runtime<br/>boucle agent, MCP à état"]
+        RT["Runtime (réseau PUBLIC)<br/>boucle agent, MCP à état"]
 
-        subgraph MCPServer["Serveur MCP (02-MCP.tf)"]
+        subgraph MCPServer["Serveur MCP (04-MCP.tf)"]
             T1["cost_by_service_period"]
             T2["active_gpu_instances"]
             T3["gpu_utilization_rate"]
         end
 
         Role["Rôle IAM lecture seule (00-IAM.tf)<br/>deny write, scope ce:Get*, cloudwatch:Get*/List*"]
+    end
 
-        subgraph APIsAWS["APIs AWS internes — pas de sortie Internet"]
-            CE["Cost Explorer API<br/>chiffré au repos + TLS en transit"]
-            CW["CloudWatch<br/>chiffré au repos + TLS en transit"]
-        end
+    subgraph APIsAWS["APIs AWS publiques — pas de PrivateLink sur Cost Explorer"]
+        CE["Cost Explorer API<br/>chiffré au repos + TLS en transit"]
+        CW["CloudWatch<br/>chiffré au repos + TLS en transit"]
     end
 
     CLI -->|HTTPS, TLS 1.2+| GW
@@ -89,8 +90,8 @@ flowchart TD
     T1 -.->|assume role| Role
     T2 -.->|assume role| Role
     T3 -.->|assume role| Role
-    Role --> CE
-    Role --> CW
+    Role -->|HTTPS, TLS 1.2+| CE
+    Role -->|HTTPS, TLS 1.2+| CW
 ```
 
 ## Démo
