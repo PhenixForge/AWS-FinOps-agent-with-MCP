@@ -126,6 +126,30 @@ python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 .venv/bin/pytest
 ```
 
+## Configurer un client MCP
+
+Une fois `terraform apply` fait, les [outputs](03-BEDROCK-gateway.tf) donnent tout ce qu'il faut pour connecter un client — rien à aller chercher dans la console AWS.
+
+**1. Obtenir un token OAuth** (flow `client_credentials`, Cognito) :
+
+```bash
+ACCESS_TOKEN=$(curl -s -X POST "$(terraform output -raw cognito_token_url)" \
+  -u "$(terraform output -raw cognito_client_id):$(terraform output -raw cognito_client_secret)" \
+  -d "grant_type=client_credentials&scope=$(terraform output -raw cognito_oauth_scope)" \
+  | jq -r .access_token)
+```
+
+Le token expire (1h par défaut côté Cognito) — pour une démo CLI ponctuelle ça suffit, pas de rafraîchissement automatique mis en place.
+
+**2. Claude Code CLI** — supporte un header statique, donc directement utilisable :
+
+```bash
+claude mcp add --transport http finops "$(terraform output -raw gateway_url)" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+**3. claude.ai (connecteur distant)** — **non vérifié, point d'attention à la première tentative réelle** : l'UI des connecteurs personnalisés attend en standard un flow OAuth interactif (authorization code, avec consentement utilisateur dans le navigateur), alors que le Gateway ici utilise `client_credentials` (machine-to-machine, sans utilisateur). Un header statique (`Authorization: Bearer`) est supporté en bêta côté claude.ai mais configurable seulement par un admin d'organisation, à vérifier disponible au moment du test. Si ni l'un ni l'autre ne passe, Claude Code CLI reste la façade de démo de secours (déjà tranché dans [finops-mcp-agent.md](finops-mcp-agent.md#façade-de-démo--tranché-12-septembre-2026)).
+
 ## Démo
 
 *(captures d'écran / asciinema à ajouter — démo via Claude Code CLI et/ou un connecteur MCP distant sur claude.ai)*
