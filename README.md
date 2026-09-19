@@ -115,6 +115,16 @@ flowchart TD
     Role -->|HTTPS, TLS 1.2+| CW
 ```
 
+## Tests
+
+Les 3 fonctions outils de `lambda/finops-tools/handler.py` sont testées unitairement (boto3 mocké, `moto`/compte AWS non nécessaires) :
+
+```bash
+cd lambda/finops-tools
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+.venv/bin/pytest
+```
+
 ## Démo
 
 *(captures d'écran / asciinema à ajouter — démo via Claude Code CLI et/ou un connecteur MCP distant sur claude.ai)*

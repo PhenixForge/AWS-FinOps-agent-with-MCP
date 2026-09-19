@@ -37,7 +37,7 @@ Expérimentation pratique sur l'agentique. Volontairement un **repo séparé** d
 
 ## Explicitement hors scope (et pourquoi)
 
-- **GCP** : cloud-agnostique écarté — doubler les clouds double la friction d'auth/IAM que le copilotage ne compresse pas, et va à l'encontre de la consigne de ne pas investir de temps personnel sur GCP (à apprendre en heures de bureau chez Valeo uniquement)
+- **GCP** : cloud-agnostique écarté — doubler les clouds double la friction d'auth/IAM que le copilotage ne compresse pas, et va à l'encontre de la consigne de ne pas investir de temps personnel sur GCP (à apprendre en heures de bureau chez Valeo uniquement). `GCP.tf` reste dans le repo comme simple marqueur d'intention (aucune ressource Terraform dedans) — pas une contradiction avec cette décision
 - **RAG et évaluation** : reportés sur le projet vLLM flagship, où ils s'intègrent plus naturellement (un modèle déjà servi, une stack Prometheus déjà en place) et où le calendrier n'est pas contraint par un objectif de livraison rapide
 
 ## Découpage de la session (repères, pas un budget rigide)
@@ -80,13 +80,13 @@ En construisant `04-MCP.tf`, constat : les clients de démo prévus (Claude Code
 
 **Décision** : la démo repose uniquement sur Gateway + une Lambda (`finops-tools`) exposant les 3 outils en MCP — plus simple, gratuit/quasi-gratuit, et sans Dockerfile ni code de boucle agent à écrire. Le Runtime et l'ECR sont conservés dans le repo comme chantier exploratoire séparé, pour tester plus tard le pattern "agent conteneurisé autonome" invocable indépendamment de tout client MCP (cas d'usage : un appelant sans LLM propre, ex. un bot Slack ou un job planifié) — non nécessaire pour ce projet, gardé par intérêt technique.
 
-## À faire / à vérifier une fois un compte AWS disponible (13 septembre 2026)
+## À faire / à vérifier une fois un compte AWS disponible (13 septembre 2026, mis à jour 19 septembre 2026)
 
 Rien de tout ça n'est bloquant pour continuer à coder, mais tout nécessite soit un vrai déploiement, soit un accès compte pour être réglé ou confirmé. Liste pour ne rien perdre :
 
-- **Domaine Cognito manquant** (`aws_cognito_user_pool_domain`) — sans lui, l'endpoint OAuth `/oauth2/token` n'existe pas, donc le flow `client_credentials` ne peut délivrer aucun token. Pur code Terraform, pas besoin d'un compte pour l'écrire, mais impossible à tester sans déployer.
-- **Aucun `output` Terraform** pour récupérer après coup l'URL du Gateway, le `client_id`/`client_secret` Cognito et le domaine — nécessaires pour configurer un vrai client MCP (Claude Code CLI, claude.ai). Idem : à écrire, mais à valider seulement après un `apply`.
-- **Forme exacte de l'event Lambda envoyé par le Gateway** (target MCP `lambda`) — `handler.py` tente plusieurs formes plausibles, à confirmer/adapter après une première invocation réelle (logguer `event` tel quel).
-- **Principal/`source_arn` de `aws_lambda_permission`** (`04-MCP.tf`) — supposé `bedrock-agentcore.amazonaws.com` + ARN du Gateway, non vérifié contre la doc AWS.
-- **Namespace/nom de métrique CloudWatch pour le GPU** (`handler.py`, `gpu_utilization_rate`) — suppose un agent CloudWatch/NVIDIA DCGM publiant sous `CWAgent`/`nvidia_smi_utilization_gpu` ; dépend de ce qui est réellement installé sur les instances GPU, à ajuster une fois qu'elles existent.
+- ✅ **Domaine Cognito** (`aws_cognito_user_pool_domain`, `03-BEDROCK-gateway.tf`) — ajouté (`finops-gateway-<account_id>`, préfixe unique via `data.aws_caller_identity`). `terraform validate` passe. Toujours pas testable en pratique sans un `apply`.
+- ✅ **Outputs Terraform** (`03-BEDROCK-gateway.tf`) — `gateway_url`, `cognito_token_url`, `cognito_client_id`, `cognito_client_secret` (sensitive), `cognito_oauth_scope` ajoutés.
+- ✅ **Forme exacte de l'event/context Lambda** — confirmée contre la doc AWS officielle (Gateway > Lambda targets > Lambda function input format) : `event` est directement le dict d'arguments (pas enveloppé), le nom de l'outil arrive dans `context.client_context.custom["bedrockAgentCoreToolName"]` préfixé par le nom du target (`finops-tools___...`). `handler.py` corrigé en conséquence — l'ancien code lisait `event.get("toolName"/"name")` et `event.get("input"/"arguments")`, ce qui n'aurait jamais matché en réalité. 11 tests unitaires ajoutés (`lambda/finops-tools/test_handler.py`, boto3 mocké, aucun compte AWS requis) qui auraient attrapé ce bug.
+- ✅ **`aws_lambda_permission` retiré** (`04-MCP.tf`) — la doc AWS confirme qu'une resource-based policy sur la Lambda n'est nécessaire que si la fonction est dans un compte différent du rôle du Gateway (pas notre cas). La policy identity-based déjà présente (`finops_agent_invoke_tools_lambda`) suffit. Le `principal = "bedrock-agentcore.amazonaws.com"` qu'utilisait l'ancien code était de toute façon incorrect (la doc attend l'ARN du rôle du Gateway comme principal, pas ce service principal).
+- ⏳ **Namespace/nom de métrique CloudWatch pour le GPU** (`handler.py`, `gpu_utilization_rate`) — suppose un agent CloudWatch/NVIDIA DCGM publiant sous `CWAgent`/`nvidia_smi_utilization_gpu` ; dépend de ce qui est réellement installé sur les instances GPU, à ajuster une fois qu'elles existent. Seul point de la liste initiale qui reste réellement bloqué sur un accès compte — pas de doc générique à vérifier, ça dépend de la config réelle des instances.
 - **Service principal AgentCore** (`00-IAM.tf`) déjà confirmé contre la doc — pas un TODO, juste listé ici pour mémoire que c'est réglé.

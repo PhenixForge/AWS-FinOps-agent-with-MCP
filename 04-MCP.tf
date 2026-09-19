@@ -73,16 +73,16 @@ resource "aws_iam_role_policy" "finops_agent_invoke_tools_lambda" {
   })
 }
 
-# Resource-based policy on the Lambda itself, allowing the Gateway to invoke
-# it. Principal/condition not yet verified against AWS docs — confirm the
-# exact requirement before relying on this for a real deployment.
-resource "aws_lambda_permission" "finops_gateway_invoke" {
-  statement_id  = "AllowBedrockAgentCoreGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.finops_tools.function_name
-  principal     = "bedrock-agentcore.amazonaws.com"
-  source_arn    = aws_bedrockagentcore_gateway.finops_gateway.gateway_arn
-}
+# No aws_lambda_permission (resource-based policy) here on purpose: per AWS
+# docs (Gateway prerequisites > Permissions > Access a Lambda function), a
+# Lambda resource-based policy is only required when the function lives in a
+# *different* AWS account than the Gateway service role — not the case here.
+# The identity-based policy above (finops_agent_invoke_tools_lambda) is the
+# only permission actually needed. An earlier version of this file had an
+# aws_lambda_permission with principal = "bedrock-agentcore.amazonaws.com",
+# which was also wrong: the doc's resource-based policy example uses the
+# Gateway's IAM role ARN as principal, not that service principal.
+# https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-prerequisites-permissions.md
 
 resource "aws_bedrockagentcore_gateway_target" "finops_tools" {
   gateway_identifier = aws_bedrockagentcore_gateway.finops_gateway.gateway_id

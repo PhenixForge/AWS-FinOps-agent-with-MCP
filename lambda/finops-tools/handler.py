@@ -2,10 +2,12 @@
 
 boto3 ships with the Lambda Python runtime, so there's nothing to package.
 
-NOTE: the exact event envelope the AgentCore Gateway sends for an MCP
-"lambda" target hasn't been confirmed against AWS docs — `handler()`
-below tries a few common shapes. If neither matches on a real invocation,
-log `event` and adjust `handler()` to match what actually comes in.
+Event/context format confirmed against AWS docs (Gateway > Lambda targets >
+Lambda function input format): `event` is a flat dict of the tool's input
+arguments, and the tool name arrives on `context.client_context.custom`
+prefixed with the target name (e.g. "finops-tools___cost_by_service_period"),
+not in `event` itself.
+https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-add-target-lambda.html
 """
 
 import datetime
@@ -105,9 +107,20 @@ TOOLS = {
 }
 
 
+TOOL_NAME_DELIMITER = "___"
+
+
+def _strip_target_prefix(qualified_tool_name):
+    """"finops-tools___cost_by_service_period" -> "cost_by_service_period"."""
+    if TOOL_NAME_DELIMITER in qualified_tool_name:
+        return qualified_tool_name.split(TOOL_NAME_DELIMITER, 1)[1]
+    return qualified_tool_name
+
+
 def handler(event, context):
-    tool_name = event.get("toolName") or event.get("tool_name") or event.get("name")
-    arguments = event.get("input") or event.get("arguments") or event.get("parameters") or {}
+    qualified_tool_name = context.client_context.custom["bedrockAgentCoreToolName"]
+    tool_name = _strip_target_prefix(qualified_tool_name)
+    arguments = event  # event *is* the arguments dict, not a wrapper around it
 
     tool = TOOLS.get(tool_name)
     if tool is None:

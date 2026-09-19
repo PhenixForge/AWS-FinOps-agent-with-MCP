@@ -29,3 +29,6 @@ terraform.rc
 # Python bytecode cache
 __pycache__/
 *.pyc
+
+# Local virtualenv (Lambda handler tests)
+.venv/
