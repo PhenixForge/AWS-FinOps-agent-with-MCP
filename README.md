@@ -76,6 +76,7 @@ Un Runtime AgentCore conteneurisé (`01-ECR.tf`, `02-BEDROCK-runtime.tf`) existe
 - **Chiffrement** : TLS en transit sur tous les flux (client → Gateway MCP, Lambda → API AWS), chiffrement au repos natif sur Cost Explorer et CloudWatch
 - **Authentification** : le Gateway MCP exige un token OAuth (Cognito, `CUSTOM_JWT`) pour tout appel entrant
 - **Moindre privilège** : la Lambda `finops-tools` a son propre rôle IAM dédié, lecture seule (`ce:Get*`, `cloudwatch:Get*`/`List*`, `ec2:Describe*`), aucune permission d'écriture — le rôle du Gateway, séparé, ne peut qu'invoquer cette Lambda
+- **Durcissement IAM différé, volontairement** : la trust policy du rôle du Gateway (`00-IAM.tf`) autorise `bedrock-agentcore.amazonaws.com` à assumer le rôle sans condition `aws:SourceAccount`/`aws:SourceArn` ("confused deputy" — n'importe quel Gateway AgentCore de n'importe quel compte pourrait en théorie l'assumer). Ce n'est pas un oubli : la [doc AWS](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-prerequisites-permissions.md) recommande explicitement d'omettre cette condition tant que le Gateway n'existe pas encore (son ARN n'est connu qu'après création), puis de l'ajouter après un premier `terraform apply` avec l'ARN réel. À faire dès que le compte AWS est actif — voir la liste de suivi dans [finops-mcp-agent.md](finops-mcp-agent.md).
 
 ```mermaid
 flowchart TD
@@ -132,3 +133,14 @@ python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 ## Contexte du projet
 
 Scope, décisions et critère d'arrêt : voir [finops-mcp-agent.md](finops-mcp-agent.md).
+
+## Conformité (EU AI Act)
+
+*Analyse de classification de risque, pas un avis juridique.* Exercice volontaire pour documenter le raisonnement plutôt que de se contenter d'affirmer une conformité de façade.
+
+- **Pas "haut risque" (Annexe III)** : la catégorie infrastructure critique vise les systèmes utilisés comme *composant de sécurité* dans la gestion/opération de l'infrastructure (électricité, gaz, eau, infrastructure numérique critique, trafic routier). Cet agent est strictement en lecture (Cost Explorer, CloudWatch, EC2 `Describe*`) — un outil consultatif de coût/usage, pas un composant qui gère ou opère quoi que ce soit. Même si la catégorie s'appliquait, le *Digital Omnibus* (adopté fin juin 2026) a reporté l'échéance des obligations haut risque de l'Annexe III du 2 août 2026 au 2 décembre 2027.
+- **Obligations GPAI hors périmètre** : elles pèsent sur le fournisseur du modèle (Amazon Bedrock / Anthropic), pas sur un déployeur qui appelle le modèle via API pour construire un agent au-dessus.
+- **Transparence (Art. 50)** : seule obligation réellement en vigueur (depuis le 2 août 2026) qui pourrait concerner ce projet — informer l'utilisateur qu'il interagit avec une IA. Probablement couvert par l'exemption "évident selon le contexte" : l'usage se fait exclusivement via un client MCP explicitement IA (Claude Code CLI, connecteur claude.ai), jamais via une interface qui pourrait faire croire à un interlocuteur humain.
+- **Pratiques interdites (Art. 5)** : sans objet — pas de notation sociale, de manipulation, de biométrie, de reconnaissance d'émotions.
+
+Sources : [texte de l'Annexe III (résumé)](https://artificialintelligenceact.eu/high-level-summary/), [Article 50](https://artificialintelligenceact.eu/article/50/), [suivi du report Digital Omnibus](https://labs.cloudsecurityalliance.org/research/csa-research-note-eu-ai-act-high-risk-deadline-omnibus-20260/). À revérifier avant toute décision réelle — le calendrier de l'AI Act a déjà bougé une fois en 2026, rien ne garantit qu'il ne rebouge pas.
